@@ -1,0 +1,354 @@
+﻿<!DOCTYPE html>
+<html lang="en">
+<head>
+    <title id="title">Index</title>
+    <style>
+        .name-container {
+            background-color: white;
+            padding: 40px 60px;
+            border-radius: 12px;
+            box-shadow: 0 4px 20px rgba(0, 0, 0, 0.08);
+            width: 100%;
+            max-width: 400px;
+            margin: 0 auto;
+        }
+        .title {
+            text-align: center;
+            color: #333;
+            font-size: 22px;
+            margin-bottom: 25px;
+            font-weight: 600;
+        }
+        .form-wrapper {
+            text-align: center;
+        }
+        .name-input {
+            width: 100%;
+            padding: 12px 15px;
+            border: 1px solid #e0e0e0;
+            border-radius: 8px;
+            font-size: 16px;
+            outline: none;
+            transition: border-color 0.3s ease;
+        }
+        .name-input:focus {
+            border-color: #409eff;
+            box-shadow: 0 0 0 3px rgba(64, 158, 255, 0.1);
+        }
+        .name-input::placeholder {
+            color: #999;
+        }
+        .submit-btn {
+            width: 100%;
+            padding: 12px 0;
+            background-color: #409eff;
+            color: white;
+            border: none;
+            border-radius: 8px;
+            font-size: 16px;
+            cursor: pointer;
+            transition: background-color 0.3s ease;
+            margin-top: 10px;
+        }
+        .submit-btn:hover {
+            background-color: #337ecc;
+        }
+        .submit-btn:disabled {
+            background-color: #b3d4fc;
+            cursor: not-allowed;
+        }
+    </style>
+    <link rel="icon" href="/favicon.ico">
+</head>
+<body id="insert">
+    <div class="name-container">
+        <h2 class="title">输入昵称</h2>
+        <div class="form-wrapper">
+            <input class="name-input" id="name" type="text" placeholder="请输入昵称" onkeydown="if(event.key==='Enter')submitName()">
+            <button class="submit-btn" onclick="submitName()">进入聊天室</button>
+        </div>
+    </div>
+    <script>
+        let g_socket;
+        let g_name = { value: "user"};
+        let selectedFile = null;
+        let has_news_when_select_pic = false;
+
+        function submitName() {
+            const name = document.getElementById('name').value;
+            if (name == '') {
+                return;
+            }
+            g_name.value = name;
+            const xhr = new XMLHttpRequest();
+            xhr.open("GET", "/chat", true);
+            xhr.setRequestHeader("Content-Type", "text/html");
+            xhr.onreadystatechange = function () {
+                if (xhr.readyState === 4 && xhr.status === 200) {
+                    let insert = document.getElementById("insert");
+                    insert.innerHTML = xhr.responseText;
+                    connectsocket();
+                    prepareChatRoomHtml();
+                } else if (xhr.readyState === 4) {
+                    console.error('请求失败，服务器无响应');
+                }
+            };
+            xhr.send();
+        }
+
+        function prepareChatRoomHtml() {
+            setContentHead();
+            setEnterSend();
+            addPicListener();
+        }
+        function setContentHead() {
+            let head = document.getElementById('contenthead');
+            head.innerHTML = g_name.value;
+        }
+        function setEnterSend() {
+            const textarea = document.getElementById('message');
+            textarea.addEventListener('keydown', function(e) {
+                if (e.key === 'Enter') {
+                    if (e.shiftKey) {
+                        return;
+                    }
+
+                    e.preventDefault();
+                    sendWebsocket();
+                }
+            });
+        }
+
+        function addPicListener() {
+            document.getElementById('message').addEventListener('paste', function (e) {
+                const items = (e.clipboardData || e.originalEvent.clipboardData).items;
+                for (let item of items) {
+                    if (item.kind === 'file' && item.type.startsWith('image/')) {
+                        const file = item.getAsFile();
+                        selectedFile = file;
+                        document.getElementById('fileMessage').innerHTML = 
+                            `<span style="color: #909399;font-size: 10px;">已粘贴图片</span>`;
+    
+                        const content = document.getElementById('message').value.trim();
+                        if (content) has_news_when_select_pic = true;
+                        break;
+                    }
+                }
+            });
+
+            document.getElementById('imgFile').addEventListener('change', function(e) {
+                const file = e.target.files[0];
+                if (!file) return;
+
+                if (!file.type.startsWith('image/')) {
+                    alert('请选择图片文件！');
+                    return;
+                }
+                
+                selectedFile = file;
+                document.getElementById('fileMessage').innerHTML = 
+                    `<span style="color: #909399;font-size: 10px;">已选择图片：${file.name}</spin>`;
+    
+                const content = document.getElementById('message').value.trim();
+                if (content)has_news_when_select_pic = true;
+            });
+        }
+
+        function connectsocket() {
+            let hostname = window.location.hostname;
+            g_socket = new WebSocket('ws://' + hostname + ':8888');
+
+            g_socket.onopen = function(event) {
+                const jsonData = JSON.stringify({"type":"news","name":"(≧▽≦)ADD(≧▽≦)","data0":g_name.value})
+                g_socket.send(jsonData);
+
+                let newDiv = document.createElement('div');
+                newDiv.className = 'sysmessage';
+                newDiv.innerHTML = "你  已成功加入会话";
+                document.getElementById('next').appendChild(newDiv);
+            };
+
+            g_socket.onmessage = function(event) {
+                let response = JSON.parse(event.data);
+
+                if (response.type == "news") {
+                    if (response.name == "(≧▽≦)ADD(≧▽≦)") {
+                        addSystemMsg(response.data0 + "  加入会话");
+                    } else {
+                        showNews("left", response.name, response.data0);
+                    }
+                } else if (response.type == "pic") {
+                    showPic("left", response.name, response.data0);
+                } else if (response.type == "pic_news") {
+                    showNewsAndPic("left", response.type, response.name, response.data1, response.data0);
+                } else if (response.type == "news_pic") {
+                    showNewsAndPic("left", response.type, response.name, response.data0, response.data1);
+                }
+                scrollToBottom();
+            };
+
+            g_socket.onclose = function(event) {
+                addSystemMsg("连接已断开!" + (new Date().toLocaleString()));
+                alert("连接已断开!");
+            };
+
+            g_socket.onerror = function(error) {
+                console.error('WebSocket error: ' + error.message);
+                addSystemMsg("连接到服务器失败!!");
+            };
+        }
+
+        function sendWebsocket() {
+            let message = document.getElementById('message');
+            const news = message.value.trim();
+            let newDiv = document.createElement('div');
+
+            if(g_socket.readyState != 1) {
+                alert("未链接到服务器！");
+                return;
+            }
+
+            if (selectedFile && news) {
+                let type = "pic_news";
+                if (has_news_when_select_pic)
+                    type = "news_pic";
+                fileToBase64(selectedFile).then(base64 => {
+                    showNewsAndPic("right", type, g_name.value, news, base64);
+                    let jsonData;
+                    if (type == "pic_news") {
+                        jsonData = JSON.stringify({"type":type,"name":g_name.value,"data0":base64,"data1":news});
+                    } else {
+                        jsonData = JSON.stringify({"type":type,"name":g_name.value,"data0":news,"data1":base64});
+                    }
+                    g_socket.send(jsonData);
+
+                });
+                selectedFile = null;
+                has_news_when_select_pic = false;
+                document.getElementById('imgFile').value = '';
+                document.getElementById('fileMessage').innerHTML = '';
+                message.value = "";
+            } else if (selectedFile) {
+                fileToBase64(selectedFile).then(base64 => {
+                    showPic("right", g_name.value, base64);
+                    const jsonData = JSON.stringify({"type":"pic","name":g_name.value,"data0":base64})
+                    g_socket.send(jsonData);
+                });
+                selectedFile = null;
+                document.getElementById('imgFile').value = '';
+                document.getElementById('fileMessage').innerHTML = '';
+            } else if (news) {
+                showNews("right", g_name.value, news);
+                const jsonData = JSON.stringify({"type":"news","name":g_name.value,"data0":news})
+                g_socket.send(jsonData);
+                message.value = "";
+            }
+            scrollToBottom();
+        }
+
+        function fileToBase64(file) {
+            return new Promise((resolve, reject) => {
+                const reader = new FileReader();
+                reader.readAsDataURL(file);
+                reader.onload = () => resolve(reader.result);
+                reader.onerror = (error) => reject(error);
+            });
+        }
+        function showNews(dir, name, news) {
+            setDirection(dir);
+            const nextDom = document.getElementById('next');
+            let info = {i0:'',i1:''};
+            setInfo(info, dir, name);
+            const textHtml =
+            `<div class="${g_class.total}">
+                <div class="${g_class.info}">`
+                    + info.i0 + info.i1 +
+                `</div>
+                <div class="${g_class.content}">${news}</div>
+            </div>`;
+            nextDom.innerHTML += textHtml;
+        }
+
+        function showPic(dir, name, data) {
+            setDirection(dir);
+            const time = new Date().toLocaleString();
+            const nextDom = document.getElementById('next');
+            const reader = new FileReader();
+            let info = {i0:'',i1:''};
+            setInfo(info, dir, name);
+
+            const imgHtml = 
+            `<div class="${g_class.total}">
+                <div class="${g_class.info}">`
+                    + info.i0 + info.i1 +
+                `</div>
+                <div>
+                    <img src="${data}" class="chat-img" onclick="window.open(this.src)">
+                </div>
+            </div>`;
+            nextDom.innerHTML += imgHtml;
+        }
+        let g_class = {curDir:"",total:"",info:"",content:""};
+        function setDirection(dir) {
+            if (g_class.curDir == dir) return;
+            g_class.curDir = dir;
+            g_class.total = dir + "Div";
+            g_class.info = dir + "-info";
+            g_class.content = dir + "Content";
+        }
+
+        function showNewsAndPic(dir, type, name, news, pic) {
+            setDirection(dir);
+            const reader = new FileReader();
+            const time = new Date().toLocaleString();
+            const nextDom = document.getElementById('next');
+            let info = {i0:'',i1:''};
+            setInfo(info, dir, name);
+
+            let imgHtml =
+                `<div class="${g_class.total}">
+                    <div class="${g_class.info}">`
+                        + info.i0 + info.i1 +
+                    `</div>`;
+            if (type == "news_pic") {
+            imgHtml += 
+                `   <div class="${g_class.content}">${news}</div>
+                    <div style="margin-top: 5px;">
+                        <img src="${pic}" class="chat-img" onclick="window.open(this.src)">
+                    </div>
+                </div>`;
+            } else if (type == "pic_news") {
+            imgHtml +=
+                `   <div>
+                        <img src="${pic}" class="chat-img" onclick="window.open(this.src)">
+                    </div>
+                    <div class="${g_class.content}">${news}</div>
+                </div>`;
+            }
+            nextDom.innerHTML += imgHtml;
+            scrollToBottom();
+        }
+        function setInfo(info, dir, name) {
+            const time = new Date().toLocaleString();
+            info.i0 = `<span class="nickname"><b>${name}</b>(我)</span>`;
+            info.i1 = `<span class="time">${time}</span>`;
+            if (dir == "left") {
+                info.i0 = `<span class="time">${time}</span>`;
+                info.i1 = `<span class="nickname"><b>${name}</b></span>`;
+            }
+        }
+        function addSystemMsg(text) {
+            const html = `<div class="sysmessage">${text}</div>`;
+            document.getElementById('next').innerHTML += html;
+            scrollToBottom();
+        }
+
+        function scrollToBottom() {
+            const content = document.getElementById('content');
+            setTimeout(() => {
+                content.scrollTop = content.scrollHeight;
+            }, 0);
+        }
+    </script>
+</body>
+</html>
