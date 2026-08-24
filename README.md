@@ -14,4 +14,5 @@ HTTP     ：提供网页静态页面，处理浏览器普通 HTTP 请求；
 WebSocket：完成 HTTP 升级握手，建立长连接，实现浏览器与服务端全双工通信，服务端可主动向客户端推送聊天消息，实现群聊广播、在线状态通知；定时检测非活动连接，超时关闭。
 
 ## 2.效果显示
-<img width="3427" height="1964" alt="image" src="https://github.com/user-attachments/assets/f6d244bd-bd8a-4e53-a6fc-4b877260ad72" />
+<img width="3391" height="1960" alt="image" src="https://github.com/user-attachments/assets/37cf26c5-0024-427e-abb1-a4cf65709f5a" />
+
