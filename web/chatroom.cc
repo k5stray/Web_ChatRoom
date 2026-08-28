@@ -11,9 +11,10 @@
 #include "chatroom.h"
 #include "../util/openfile.h"
 #include "../util/log_util.h"
+#include "../util/mem_pool.h"
 
 #define HTML_INDEX_SRC       "web/index.html"
-#define HTML_INTERFACE_SRC   "web/chatrom.html"
+#define HTML_INTERFACE_SRC   "web/chatroom.html"
 #define HTML_NODOUND_SRC     "web/404.html"
 #define HTTP_ICO_SRC         "web/favicon.ico"
 
@@ -257,7 +258,7 @@ static int handle_websocket_frame(TcpConnectionPtr conn, const char *idata, int 
 		return len;
 	}
 
-	char *response = new char[info.resp_frame_len + 1];
+	char *response = reinterpret_cast<char*>(memalloc(info.resp_frame_len + 1));
 	response[info.resp_frame_len] = '\0';
 
     response[0] = idata[0];
@@ -285,7 +286,8 @@ static int handle_websocket_frame(TcpConnectionPtr conn, const char *idata, int 
 	} else {
 		conn->notify_others(response, info.resp_frame_len);
 	}
-	delete[] response;
+
+	memfree(response);
 	return info.req_frame_len;
 }
 
