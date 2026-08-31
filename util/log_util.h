@@ -149,6 +149,8 @@ static inline const char* get_filename(const char* path)
 
 #else /* LOG_UTIL */
 
+#include <cstdio>
+
 #define LOG_INIT(dir, log_level)
 #define LOG_STOP()
 #define LOG_FLUSH()
