@@ -16,7 +16,20 @@ WebSocket：完成 HTTP 升级握手，建立长连接，实现浏览器与服�
 ## 2.效果显示
 <img width="3391" height="1960" alt="image" src="https://github.com/user-attachments/assets/37cf26c5-0024-427e-abb1-a4cf65709f5a" />
 
-## 3.架构分析
+## 3.编译环境搭建
+```
+# 1.安装依赖
+sudo apt update
+sudo apt install libssl-dev
+
+# 2.编译
+make
+
+# 3.运行
+./server
+```
+
+## 4.架构分析
 该项目基于B/S架构组织，由浏览器作为应用客户端，服务器向浏览器提供数据交互服务。服务器对外提供8080和8888两个端口，8080端口提供html页面服务，8888端口负责http协议与websocket协议的转换，实现客户端与服务器的双工通信。服务器功能的实现依赖多个组件，主要包含NET、Web App、Util，交互示意图如下。
 <img width="1031" height="659" alt="image" src="https://github.com/user-attachments/assets/020535ad-cc0a-47c6-b54b-61c94a916a51" />
 
