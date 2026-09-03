@@ -15,6 +15,8 @@ WebSocket：完成 HTTP 升级握手，建立长连接，实现浏览器与服�
 
 ## 2.效果显示
 <img width="3391" height="1960" alt="image" src="https://github.com/user-attachments/assets/37cf26c5-0024-427e-abb1-a4cf65709f5a" />
+支持1000+连接稳定低延时广播，如图
+<img width="482" height="260" alt="image" src="https://github.com/user-attachments/assets/e6ce470b-df90-4ff0-a5a8-9399881785bd" />
 
 ## 3.编译环境搭建
 ```
