@@ -22,10 +22,10 @@ static const char HTTP_RESPONSE_SATUS200[] = "HTTP/1.1 200 OK\r\n";
 static const char HTTP_RESPONSE_SATUS404[] = "HTTP/1.1 404 Not Found\r\n";
 static const char HTTP_RESPONSE_TYPE[] = "Content-Type: text/html; charset=UTF-8\r\n\r\n";
 
-static const char SWITCH_RESPONE_HEAD[] = R"(HTTP/1.1 101 Switching Protocols
-Upgrade: websocket
-Connection: Upgrade
-Sec-WebSocket-Accept: )";
+static const char SWITCH_RESPONE_HEAD[] = "HTTP/1.1 101 Switching Protocols\r\n"
+"Upgrade: websocket\r\n"
+"Connection: Upgrade\r\n"
+"Sec-WebSocket-Accept: ";
 
 static const char HTTP_ICO_HEAD[] = R"(HTTP/1.1 200 OK
 Content-Type: image/x-icon\r\n)";
